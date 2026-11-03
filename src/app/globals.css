@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --clay-out: 6px 6px 14px rgba(110, 92, 48, .30), -5px -5px 12px rgba(255, 255, 255, .85);
+  --clay-out-sm: 3px 3px 8px rgba(110, 92, 48, .28), -3px -3px 7px rgba(255, 255, 255, .85);
+  --clay-in: inset 3px 3px 7px rgba(110, 92, 48, .28), inset -3px -3px 7px rgba(255, 255, 255, .8);
+}
+
+/* Sharp corners, everywhere */
+*, *::before, *::after { border-radius: 0 !important; }
+
+@layer base {
+  html { @apply text-ink font-sans antialiased; background: linear-gradient(180deg, #f1ecda, #e6dfc4) fixed; }
+  :focus-visible { @apply outline outline-2 outline-offset-2 outline-oxblood; }
+  dialog::backdrop { background: rgba(46, 9, 7, .5); }
+}
+
+@layer components {
+  .card { @apply border border-white/60; background: linear-gradient(145deg, #faf7ee, #ece5cc); box-shadow: var(--clay-out); }
+  .card-flat { @apply border border-paper-line bg-paper-light; }
+  .btn { @apply inline-flex min-h-[44px] items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold transition-colors duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn text-[#fbf7ea]; background: linear-gradient(160deg, #7a1411, #550605 60%, #430403);
+    box-shadow: 4px 4px 10px rgba(58, 4, 3, .38), -3px -3px 8px rgba(255, 255, 255, .7), inset 1px 1px 1px rgba(255, 255, 255, .18), inset -2px -2px 3px rgba(0, 0, 0, .25); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.12); }
+  .btn-primary:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(0, 0, 0, .5); }
+  .btn-accent { @apply btn text-oxblood; background: linear-gradient(160deg, #e8c466, #d8a93d 60%, #c9962b);
+    box-shadow: 4px 4px 10px rgba(110, 92, 48, .35), -3px -3px 8px rgba(255, 255, 255, .7), inset 1px 1px 1px rgba(255, 255, 255, .4), inset -2px -2px 3px rgba(120, 80, 0, .25); }
+  .btn-accent:hover:not(:disabled) { filter: brightness(1.06); }
+  .btn-accent:active:not(:disabled) { box-shadow: inset 3px 3px 7px rgba(120, 80, 0, .4); }
+  .btn-ghost { @apply btn text-oxblood; background: linear-gradient(145deg, #f8f5ea, #e6dfc4); box-shadow: var(--clay-out-sm); }
+  .btn-ghost:hover:not(:disabled) { background: linear-gradient(145deg, #fffdf6, #ece5cc); }
+  .btn-ghost:active:not(:disabled) { box-shadow: var(--clay-in); }
+  .btn-danger { @apply btn text-alert; background: linear-gradient(145deg, #f8f5ea, #e6dfc4); box-shadow: var(--clay-out-sm); }
+  .btn-sm { @apply min-h-[36px] px-3.5 py-1.5 text-xs; }
+  .field { @apply w-full border-2 border-transparent px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-mute/70 focus:border-oxblood focus:outline-none disabled:opacity-60; background: #e9e2c8; box-shadow: var(--clay-in); }
+  .label { @apply mb-1.5 block text-sm font-medium text-oxblood; }
+  .th { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-mute; }
+  .td { @apply px-4 py-3; }
+  .chip { @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-oxblood; background: #f3eedb; box-shadow: var(--clay-out-sm); }
+  .clay-tile { background: linear-gradient(145deg, #fcfaf2, #eee8d2); box-shadow: var(--clay-out-sm); }
+  .bg-brand { background: linear-gradient(160deg, #7a1411, #550605 60%, #430403); }
+  .bg-brand-gold { background: linear-gradient(160deg, #e8c466, #d8a93d 60%, #c9962b); }
+  .bar-clay { background: linear-gradient(180deg, #e8c466, #c9962b); box-shadow: inset 1px 1px 2px rgba(255, 255, 255, .5), inset -2px -2px 3px rgba(120, 80, 0, .25), 2px 2px 5px rgba(110, 92, 48, .3); }
+  .bar-sand { background: linear-gradient(180deg, #c0b281, #a89a66); box-shadow: inset 1px 1px 2px rgba(255, 255, 255, .5), inset -2px -2px 3px rgba(80, 65, 20, .25), 2px 2px 5px rgba(110, 92, 48, .3); }
+  .clay-dialog { @apply m-auto max-h-[90vh] w-[min(760px,94vw)] overflow-auto border border-white/60 p-0 text-ink; background: linear-gradient(145deg, #fcfaf2, #ece5cc); box-shadow: 16px 16px 40px rgba(46, 9, 7, .4), -4px -4px 14px rgba(255, 255, 255, .5); }
+  .clay-dialog[open] { @apply animate-pop; }
+  .skeleton { @apply relative overflow-hidden; background: #e1d8b8; box-shadow: inset 2px 2px 5px rgba(110, 92, 48, .2); }
+  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full animate-shimmer; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+@media print {
+  html { background: #fff !important; }
+  .card, .clay-tile { box-shadow: none !important; border: 1px solid #bbb !important; background: #fff !important; }
+}

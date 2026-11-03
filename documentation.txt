@@ -1,0 +1,82 @@
+# School ERP (Next.js + Neon + Clerk + Resend)
+
+Next.js 15 (App Router) · TypeScript · Drizzle ORM · Neon Postgres · Clerk · Resend · Tailwind · @react-pdf/renderer
+
+## Run it
+```bash
+npm install
+cp .env.example .env.local        # fill it in (see below)
+npm run db:push                   # creates all tables in Neon
+npm run db:seed                   # seeds current year + 3 terms, Grade 1-12 (Blue/Green streams), sample fees, all CBC subjects
+npm run dev                       # http://localhost:3000
+```
+
+### .env.local, minimum to boot
+1. **Neon**: create a project. `DATABASE_URL` = *pooled* string, `DATABASE_URL_UNPOOLED` = *direct* string.
+2. **Clerk**: create an application (email sign-in is enough), copy the two keys.
+3. `ADMIN_EMAILS=you@example.com`. Sign up with that email and you are an admin.
+4. `APP_URL=http://localhost:3000`
+Everything else (Resend, M-Pesa, SMS) can wait; emails and SMS silently no-op until configured.
+
+## First 10 minutes
+1. Sign up at `/sign-up` with your ADMIN_EMAILS address → you land on `/admin`.
+2. **Students → Add student**, then add a guardian **with an email**.
+3. **Fees → Generate term invoices** for Term 1.
+4. **Invoices → Record payment** to test the ledger.
+5. In a private window, sign up as the guardian's email → `/portal` shows the child, balance and statement. (Accounts link to students automatically by email; no IDs to copy.)
+6. **Staff**: teachers and bursars sign up at `/join` (they pick a role first), fill the registration form, and appear under **Staff → Pending**. Approve them there. You can also add staff manually. **Academics → Subjects** assigns teachers; **Timetable** generates lessons.
+
+## Roles
+`admin` (everything), `principal` (read-only admin), `bursar` (finance), `teacher` (marks + attendance for own classes), `parent`/`student` (portal, own children only). Staff roles live in the `staff` table (Staff page), so granting or revoking takes effect immediately; every server action re-checks it. Emails are only trusted when Clerk reports them verified.
+
+## M-Pesa (Daraja) in development
+1. Get sandbox keys at developer.safaricom.co.ke; shortcode `174379` + the sandbox passkey.
+2. Expose localhost: `cloudflared tunnel --url http://localhost:3000` (or ngrok). Set `APP_URL` to that https URL and restart.
+3. Register C2B URLs once (e.g. a throwaway script/route calling `registerC2bUrls()` from `src/lib/mpesa.ts`).
+4. In the portal press **Pay with M-Pesa**. The callback hits `/api/mpesa/stk-callback?token=…`, posts the payment idempotently, emails a receipt.
+
+Endpoints: `POST /api/mpesa/stk-callback`, `/api/mpesa/c2b/validate`, `/api/mpesa/c2b/confirm`, `/api/bank/webhook` (HMAC `X-Signature`).
+Payments to unknown admission numbers land in **Invoices → Unmatched payments**.
+
+## Deploy
+- **Vercel**: import the repo, add the env vars, deploy. `vercel.json` schedules the daily cron (marks overdue; Monday reminders). Set `CRON_SECRET`.
+- **Cloudflare**: put your domain's DNS/WAF in front of Vercel; use R2 later for photos.
+- Run `npm run db:push` against Neon before first deploy. In Clerk, add your production domain.
+- For `@react-pdf/renderer`, keep PDF routes on the Node runtime (already set).
+
+## Layout
+```
+src/db            schema (Drizzle), client, seed
+src/lib           auth/roles, payments (idempotent posting), mpesa, invoices, report card, notify, pdf docs
+src/app/admin     staff UI + server actions
+src/app/teacher   marks grid + attendance register
+src/app/portal    parent/student portal (+ M-Pesa pay)
+src/app/api       webhooks, PDFs, stk status, cron
+```
+## Known assumptions
+- Grading scale is in `src/lib/grading.ts`; replace with your school's (CBC uses levels).
+- Rank is per class across streams (`src/lib/reportcard.ts`).
+- Overpayments leave a credit (paid > total); no carry-forward yet.
+- Daraja takes whole shillings.
+
+## Updating an existing database
+`npm run db:push` adds the new columns/tables; if a database was created before the unique indexes were added, the seed also repairs the seed-specific indexes before running the upserts. It is safe to repeat and fills in Grade 1-12 and the CBC subjects.
+
+## Photos
+Passport photos are cropped to 4:5 and compressed to ~30 KB in the browser, then stored in the database (`students.photo_url`). For thousands of students, move them to Cloudflare R2 or Vercel Blob and store the URL instead.
+
+## Timetable generator
+`src/lib/timetable.ts`: randomised greedy search with restarts. Hard rules: a teacher is never in two places in one period and a class never has two lessons in one period (also enforced by unique constraints in the database). Soft rules: spread a subject across the week, put core subjects in the morning. Anything it can't place is listed with the reason (usually an overloaded teacher).
+
+## v3 additions
+- **Staff**: Teaching / Non-teaching tabs. TSC number is required for TSC-employed teachers and principals and optional for BOM. Teachers carry employment type, department, subjects and grades; non-teaching staff carry job title and department. A green dot shows who is clocked in today (staff clock in from the sidebar clock; admins can clock anyone).
+- **Timetable**: built from teacher profiles (subjects x grades) plus any manual assignments; several qualified teachers share streams by lesson load. Per grade and stream, no teacher or class is ever double-booked.
+- **Student import**: Students -> Add student -> upload a spreadsheet; the form autofills from the list in order. **Marklists**: Academics -> Report cards.
+- **Finance**: filter by year, term (1/2/3) and grade; Sync bank payments (set `BANK_API_*` in `.env`).
+- **Theme**: khaki #C0B281, oxblood #550605, gold #D8A93D; sharp corners; icons from react-icons (Lucide); sidebar collapses to icons and expands on hover/focus.
+
+### Speed notes
+Clerk profile lookups are cached for 5 minutes per server instance; dashboard sections stream in separately. For best latency set your Vercel function region to the same region as your Neon database.
+
+### Bank API
+Banks differ, so `src/lib/bank.ts` matches field names loosely (reference/amount/account/narration/date). If your bank uses other names, adjust the key lists in `fetchTransactions`.
