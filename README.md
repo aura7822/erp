@@ -1,4 +1,4 @@
-### SKOLLAR® - Software gives us the tools but education gives us the architecture
+### SQOLLAR™ - Software gives us the tools but education gives us the architecture
 
 ### DESCRIPTION - A Highly Dynamic School ERP Software
 
